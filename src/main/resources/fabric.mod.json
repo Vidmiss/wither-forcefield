@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "witherforcefield",
+	"version": "${version}",
+	"name": "Wither Forcefield",
+	"description": "Client-side visual: a Wither-armor style forcefield around players wearing a full set of enchanted netherite armor.",
+	"authors": [
+		"Vidmiss"
+	],
+	"license": "Vidmiss Non-Commercial License",
+	"icon": "assets/witherforcefield/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.example.witherforcefield.ForcefieldClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
