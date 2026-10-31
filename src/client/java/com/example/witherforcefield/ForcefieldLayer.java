@@ -138,7 +138,8 @@ public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 				OverlayTexture.NO_OVERLAY,
 				ForcefieldConfig.get().tint(),
 				null,
-				state.outlineColor
+				state.outlineColor,
+				null
 		);
 	}
 
