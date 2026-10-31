@@ -22,22 +22,20 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * Draws the Wither's phase-two "armor" swirl around every worn piece of enchanted netherite armor,
- * or, in permanent mode, around the whole body all the time.
- *
- * <p>Each body part has its own shell model whose texture size is chosen so that one full copy of the
- * swirl texture fits exactly once around the part. That makes the lines run unbroken all the way around
- * (no seam at the back, no cut-off pieces), both when still and when scrolling.
+ * Draws the Wither's phase-two "armor" swirl around every worn piece of enchanted netherite armor.
+ * Each piece gets its own shell on the body part it covers, so a single piece works on its own:
+ * helmet = head, chestplate = torso and arms, leggings = legs, boots = lower legs.
  */
 public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel> {
 
-	/** Vanilla Wither armor swirl texture (64x32, tiles in both directions). */
+	/** Vanilla Wither armor swirl texture. */
 	private static final Identifier TEXTURE =
 			Identifier.withDefaultNamespace("textures/entity/wither/wither_armor.png");
 
 	/**
 	 * How far the shell sits outside the player's skin, in model pixels (1 pixel = 1/16 block).
 	 * Vanilla armor sits 1.0 pixel out (leggings 0.5), so 1.5 puts the shell just above all armor.
+	 * Raise it to push the shell further out, lower it to hug the armor.
 	 */
 	private static final float OFFSET_PIXELS = 1.5f;
 
@@ -47,56 +45,32 @@ public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 	/** How tall the boots shell is, in model pixels, measured up from the feet (a leg is 12 tall). */
 	private static final float BOOT_HEIGHT_PIXELS = 5.0f;
 
-	/** The body parts that get a shell. "wrap" is the length of the side strip of the part's box (2 * width + 2 * depth). */
-	private enum Part {
-		HEAD(32), BODY(24), ARMS(16), LEGS(16), BOOTS(16);
+	private enum Piece { HEAD, CHEST, LEGS, FEET }
 
-		final int wrap;
-
-		Part(int wrap) {
-			this.wrap = wrap;
-		}
-	}
-
-	/** Which parts each armor piece lights up. */
-	private enum Piece {
-		HEAD(Part.HEAD),
-		CHEST(Part.BODY, Part.ARMS),
-		LEGS(Part.LEGS),
-		FEET(Part.BOOTS),
-		FULL(Part.HEAD, Part.BODY, Part.ARMS, Part.LEGS);
-
-		final Part[] parts;
-
-		Piece(Part... parts) {
-			this.parts = parts;
-		}
-	}
-
-	/** One inflated shell model per body part, indexed by Part.ordinal(). */
+	/** One inflated shell model per armor piece, indexed by Piece.ordinal(). */
 	private final HumanoidModel<AvatarRenderState>[] shells;
 
 	@SuppressWarnings("unchecked")
 	public ForcefieldLayer(RenderLayerParent<AvatarRenderState, PlayerModel> parent) {
 		super(parent);
-		Part[] parts = Part.values();
-		this.shells = new HumanoidModel[parts.length];
-		for (Part part : parts) {
-			this.shells[part.ordinal()] = bake(part);
+		Piece[] pieces = Piece.values();
+		this.shells = new HumanoidModel[pieces.length];
+		for (Piece piece : pieces) {
+			this.shells[piece.ordinal()] = bake(piece);
 		}
 	}
 
 	/**
 	 * Builds a copy of the humanoid model with every box inflated (the same trick armor models use),
-	 * with only one body part switched on. The flags are set once here and never changed, because drawing
-	 * is deferred and the model instance is shared between all players.
+	 * with only the body parts for this piece switched on. These flags are set once here and never
+	 * changed, because drawing is deferred and the model instance is shared between all players.
 	 */
-	private static HumanoidModel<AvatarRenderState> bake(Part part) {
+	private static HumanoidModel<AvatarRenderState> bake(Piece piece) {
 		CubeDeformation deformation = new CubeDeformation(
-				part == Part.BOOTS ? OFFSET_PIXELS + BOOT_EXTRA_PIXELS : OFFSET_PIXELS);
+				piece == Piece.FEET ? OFFSET_PIXELS + BOOT_EXTRA_PIXELS : OFFSET_PIXELS);
 		MeshDefinition mesh = HumanoidModel.createMesh(deformation, 0.0f);
 
-		if (part == Part.BOOTS) {
+		if (piece == Piece.FEET) {
 			// Replace each leg with a short box covering only the bottom of the leg.
 			float top = 12.0f - BOOT_HEIGHT_PIXELS;
 			PartDefinition root = mesh.getRoot();
@@ -110,20 +84,14 @@ public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 					PartPose.offset(1.9f, 12.0f, 0.0f));
 		}
 
-		// Texture size = the side-strip length, so the swirl texture (u 0..1) spans the strip exactly once and
-		// wraps around the part without a seam. Height is half of that to keep the texture's 2:1 proportions.
-		int texWidth = part.wrap;
-		int texHeight = part.wrap / 2;
 		HumanoidModel<AvatarRenderState> model =
-				new HumanoidModel<>(LayerDefinition.create(mesh, texWidth, texHeight).bakeRoot());
-
-		model.hat.visible = false; // the hat layer is a second, bigger box on the head: it only adds clutter
-		model.head.visible = part == Part.HEAD;
-		model.body.visible = part == Part.BODY;
-		model.rightArm.visible = part == Part.ARMS;
-		model.leftArm.visible = part == Part.ARMS;
-		model.rightLeg.visible = part == Part.LEGS || part == Part.BOOTS;
-		model.leftLeg.visible = part == Part.LEGS || part == Part.BOOTS;
+				new HumanoidModel<>(LayerDefinition.create(mesh, 64, 64).bakeRoot());
+		model.head.visible = piece == Piece.HEAD;
+		model.body.visible = piece == Piece.CHEST;
+		model.rightArm.visible = piece == Piece.CHEST;
+		model.leftArm.visible = piece == Piece.CHEST;
+		model.rightLeg.visible = piece == Piece.LEGS || piece == Piece.FEET;
+		model.leftLeg.visible = piece == Piece.LEGS || piece == Piece.FEET;
 		return model;
 	}
 
@@ -133,12 +101,6 @@ public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 
 		ForcefieldConfig config = ForcefieldConfig.get();
 		if (!config.enabled || state.isInvisible) {
-			return;
-		}
-
-		// Permanent mode: full body, always on, with the swirl frozen at its starting position.
-		if (config.permanent) {
-			submitPiece(Piece.FULL, null, null, poseStack, collector, lightCoords, state, 0.0f, 0.0f);
 			return;
 		}
 
@@ -161,25 +123,23 @@ public class ForcefieldLayer extends RenderLayer<AvatarRenderState, PlayerModel>
 	private void submitPiece(Piece piece, ItemStack worn, Item expected,
 							 PoseStack poseStack, SubmitNodeCollector collector, int lightCoords,
 							 AvatarRenderState state, float u, float v) {
-		if (piece != Piece.FULL && !enchanted(worn, expected)) {
+		if (!enchanted(worn, expected)) {
 			return;
 		}
 
-		for (Part part : piece.parts) {
-			// The inflated model gets posed from the same render state at draw time, so sneaking,
-			// swimming, arm swings etc. follow the player. Order 1 = drawn after the base model.
-			collector.order(1).submitModel(
-					this.shells[part.ordinal()],
-					state,
-					poseStack,
-					RenderTypes.energySwirl(TEXTURE, u, v),
-					lightCoords,
-					OverlayTexture.NO_OVERLAY,
-					ForcefieldConfig.get().tint(),
-					null,
-					state.outlineColor
-			);
-		}
+		// The inflated model gets posed from the same render state at draw time, so sneaking,
+		// swimming, arm swings etc. follow the player. Order 1 = drawn after the base model.
+		collector.order(1).submitModel(
+				this.shells[piece.ordinal()],
+				state,
+				poseStack,
+				RenderTypes.energySwirl(TEXTURE, u, v),
+				lightCoords,
+				OverlayTexture.NO_OVERLAY,
+				ForcefieldConfig.get().tint(),
+				null,
+				state.outlineColor
+		);
 	}
 
 	private static boolean enchanted(ItemStack stack, Item expected) {

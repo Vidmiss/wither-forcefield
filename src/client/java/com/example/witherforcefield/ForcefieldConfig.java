@@ -17,12 +17,6 @@ public class ForcefieldConfig {
 	/** Turn the forcefield on or off. */
 	public boolean enabled = true;
 
-	/**
-	 * Permanent mode: a full-body forcefield that is always on (no armor needed) and doesn't move.
-	 * While this is true, "speed" is ignored.
-	 */
-	public boolean permanent = false;
-
 	/** Swirl speed. 1.0 = same as the Wither, 0 = frozen, 3.0 = three times faster. */
 	public float speed = 1.0f;
 

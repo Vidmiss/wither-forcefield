@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component;
  * Client-side chat commands (they never go to the server):
  *   /forcefield                 shows the current settings
  *   /forcefield on | off | toggle
- *   /forcefield permanent on | off | toggle
  *   /forcefield speed <0-10>
  *   /forcefield color <#RRGGBB>
  *   /forcefield reset
@@ -30,12 +29,6 @@ public final class ForcefieldCommand {
 						.then(ClientCommands.literal("on").executes(ctx -> setEnabled(ctx, true)))
 						.then(ClientCommands.literal("off").executes(ctx -> setEnabled(ctx, false)))
 						.then(ClientCommands.literal("toggle").executes(ForcefieldCommand::toggle))
-						.then(ClientCommands.literal("permanent")
-								.executes(ForcefieldCommand::permanentStatus)
-								.then(ClientCommands.literal("on").executes(ctx -> setPermanent(ctx, true)))
-								.then(ClientCommands.literal("off").executes(ctx -> setPermanent(ctx, false)))
-								.then(ClientCommands.literal("toggle")
-										.executes(ctx -> setPermanent(ctx, !ForcefieldConfig.get().permanent))))
 						.then(ClientCommands.literal("speed")
 								.then(ClientCommands.argument("value", FloatArgumentType.floatArg(0.0f, 10.0f))
 										.executes(ForcefieldCommand::speed)))
@@ -53,8 +46,7 @@ public final class ForcefieldCommand {
 
 	private static int status(CommandContext<FabricClientCommandSource> ctx) {
 		ForcefieldConfig c = ForcefieldConfig.get();
-		say(ctx, (c.enabled ? "ON" : "OFF") + ", permanent " + (c.permanent ? "on" : "off")
-				+ ", speed " + c.speed + ", color " + c.color);
+		say(ctx, (c.enabled ? "ON" : "OFF") + ", speed " + c.speed + ", color " + c.color);
 		return 1;
 	}
 
@@ -67,21 +59,6 @@ public final class ForcefieldCommand {
 
 	private static int toggle(CommandContext<FabricClientCommandSource> ctx) {
 		return setEnabled(ctx, !ForcefieldConfig.get().enabled);
-	}
-
-	private static int permanentStatus(CommandContext<FabricClientCommandSource> ctx) {
-		say(ctx, "Permanent mode is " + (ForcefieldConfig.get().permanent ? "on" : "off")
-				+ ". Use /forcefield permanent on | off | toggle");
-		return 1;
-	}
-
-	private static int setPermanent(CommandContext<FabricClientCommandSource> ctx, boolean value) {
-		ForcefieldConfig.get().permanent = value;
-		ForcefieldConfig.save();
-		say(ctx, value
-				? "Permanent mode on: full-body forcefield, always shown, not moving."
-				: "Permanent mode off: shells follow your enchanted netherite pieces again.");
-		return 1;
 	}
 
 	private static int speed(CommandContext<FabricClientCommandSource> ctx) {

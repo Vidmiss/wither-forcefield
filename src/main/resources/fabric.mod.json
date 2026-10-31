@@ -5,9 +5,9 @@
 	"name": "Wither Forcefield",
 	"description": "Client-side visual: a Wither-armor style forcefield around players wearing a full set of enchanted netherite armor.",
 	"authors": [
-		"Vidmiss"
+		"You"
 	],
-	"license": "Vidmiss Non-Commercial License",
+	"license": "CC0-1.0",
 	"icon": "assets/witherforcefield/icon.png",
 	"environment": "client",
 	"entrypoints": {
